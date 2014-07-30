@@ -19,9 +19,6 @@ if [ $? == 0 ]; then HUB_RUNNING=true; else HUB_RUNNING=false; fi
 docker ps | grep endpoint > /dev/null
 if [ $? == 0 ]; then ENDPOINT_RUNNING=true; else ENDPOINT_RUNNING=false; fi
 
-# Counts
-ENDPOINT_NUMBER=1
-
 #############
 # Functions #
 #############
@@ -53,83 +50,185 @@ function run_container () {
 }
 # Builds the necessary images.
 function build () {
-	if [ HAS_HUB == true ]; then
-		docker rmi scoop/test-hub
-	fi
-	build_image scoop/test-hub scoop-hub/
-	if [ HAS_ENDPOINT == false ]; then
-		docker rmi scoop/test-endpoint
-	fi
-	build_image scoop/test-endpoint scoop-endpoint/
+  if [ HAS_HUB == true ]; then
+    docker rmi scoop/test-hub
+  fi
+  build_image scoop/test-hub scoop-hub/
+  if [ HAS_ENDPOINT == false ]; then
+    docker rmi scoop/test-endpoint
+  fi
+  build_image scoop/test-endpoint scoop-endpoint/
 }
-# Starts all the containers.
-function start () {
-	# Hub
-	if [ HUB_EXISTS == true ]; then
-		docker start $(docker ps -a | grep hub | awk '{print $1}')
-	else
-		if [ HAS_HUB ]; then
-			run_container hub scoop/test-hub -d -p 13001:13001 -p 30308:30308 -p 3002:3002 -p 27017
-		else
-			# TODO: Make more professional.
-			echo "Run build to create images!"
-			exit 1
-		fi
-	fi
-	# Endpoints
-	if [ ENDPOINT_EXISTS == true ]; then
-		docker start $(docker ps -a | grep endpoint | awk '{print $1}')
-	else
-		if [ HAS_ENDPOINT ]; then
-			# TODO: Loop and handle many endpoints.
-			run_container endpoint-$ENDPOINT_NUMBER scoop/test-endpoint -d -p 3001:3001 -p 22:22 -p 27017 --link hub:hub
-		else
-			# TODO: Make more professional.
-			echo "Run build!"
-			exit 1
-		fi
-		# TODO: Better description.
-		echo "Make an account on the hub and make yourself an admin."
-		echo "It might take time to start... Be patient."
-	fi
-}
-# Cleans up all related containers.
-function clean () {
-	if [ ENDPOINT_EXISTS == true ]; then
-		docker rm -f $(docker ps -a | grep endpoint | awk '{print $1}')
-	else
-		echo "No hub to remove."
-	fi
-	if [ HUB_EXISTS == true ]; then
-		docker rm -f $(docker ps -a | grep hub | awk '{print $1}')
-	else
-		echo "No endpoints to remove."
-	fi
-}
-function populate () {
-	echo "Populating hub database with a default user."
-	# To do this yourself: docker run --rm -ti --link hub:hub -v $(pwd)/scoop-hub/db:/backup mongo mongodump -p 27017 -h hub -o /backup
-	docker run --rm -ti --link hub:hub -v $(pwd)/scoop-hub/db:/backup mongo mongorestore -p 27017 -h hub /backup
 
-	echo "Keys exchanging."
-	./inject_key.sh $ENDPOINT_NUMBER
+# Starts the hub container.
+function start_hub () {
+  # Hub
+  echo $HUB_EXISTS
+  if [ HUB_EXISTS ]; then
+    docker start $(docker ps -a | grep hub | awk '{print $1}')
+  else
+    echo "No hub exists, make a hub."
+  fi
 }
+# Starts all the endpoint containers.
+function start_ep () {
+  # Endpoints
+  if [ ENDPOINT_EXISTS ]; then
+    # TODO: List/count them.
+    docker start $(docker ps -a | grep endpoint | awk '{print $1}')
+  else
+    echo "No endpoints exists, make endpoints."
+  fi
+}
+
+
+
+# Generates the hub.
+function generate_hub () {
+  # Hub
+  if [ HUB_EXISTS == true ]; then
+    docker start $(docker ps -a | grep hub | awk '{print $1}')
+    echo "No new hub made, started the existing hub."
+  else
+    if [ HAS_HUB ]; then
+      run_container hub scoop/test-hub -d -p 13001:13001 -p 30308:30308 -p 3002:3002 -p 27017
+    else
+      # TODO: Make more professional.
+      echo "No hub image, run build to create images!"
+      exit 1
+    fi
+  fi
+  echo "Run populate next!"
+}
+
+# Generates the endpoints.
+function generate_ep () {
+  # Endpoints
+  if [ HAS_ENDPOINT ]; then
+    if [ "$1" != "" ]; then
+      if [ "$1" -lt "1" ]; then
+        # TODO: More professional.
+        echo "Shtap with the negativity!"
+        exit 1
+      else
+        NUMBER_OF_ENDPOINTS=$1
+      fi
+    else
+      NUMBER_OF_ENDPOINTS=1
+    fi
+    echo "Making $NUMBER_OF_ENDPOINTS endpoints."
+    for ENDPOINT_NUMBER in `seq 1 $NUMBER_OF_ENDPOINTS`; do
+      echo "Building endpoint #$ENDPOINT_NUMBER"
+      run_container endpoint-$ENDPOINT_NUMBER scoop/test-endpoint -d -p 3001 -p 27017 --link hub:hub
+    done
+  else
+    # TODO: Make more professional.
+    echo "No endpoint image, run build!"
+    exit 1
+  fi
+  # TODO: Better description.
+  echo "Run populate next!"
+}
+
+
+
+# Removes the hub container.
+function clean_hub () {
+  if [ HUB_EXISTS == true ]; then
+    docker rm -f $(docker ps -a | grep hub | awk '{print $1}')
+  else
+    echo "No endpoints to remove."
+  fi
+}
+
+# Removes endpoint containers.
+function clean_ep () {
+  if [ ENDPOINT_EXISTS == true ]; then
+    docker rm -f $(docker ps -a | grep endpoint | awk '{print $1}')
+  else
+    echo "No hub to remove."
+  fi
+}
+
+
+
+
+function populate () {
+  echo "Populating hub database with a default user."
+  # To do this yourself: docker run --rm -ti --link hub:hub -v $(pwd)/scoop-hub/db:/backup mongo mongodump -p 27017 -h hub -o /backup
+  docker run --rm -ti --link hub:hub -v $(pwd)/scoop-hub/db:/backup mongo mongorestore -p 27017 -h hub /backup
+
+  if [ "$1" != "" ]; then
+    if [ "$1" -lt "1" ]; then
+      # TODO: More professional.
+      echo "Shtap with the negativity!"
+      exit 1
+    else
+      NUMBER_OF_ENDPOINTS=$1
+    fi
+  else
+    NUMBER_OF_ENDPOINTS=1
+  fi
+
+  for ENDPOINT_NUMBER in `seq 1 $NUMBER_OF_ENDPOINTS`; do
+    echo "Keys exchanging between hub and $NUMBER_OF_ENDPOINTS endpoints."
+    ./inject_key.sh $ENDPOINT_NUMBER
+  done
+}
+
+
 #########
 # Logic #
 #########
 if [ "$1" == "build" ]; then
-	build
-	exit
+  if [ "$2" == "-h" ]; then
+    build_hub
+    exit
+  fi
+  if [ "$2" == "-e" ]; then
+    build_ep
+    exit
+  fi
+  echo "Select hub or endpoint option"
+  exit
 fi
 if [ "$1" == "start" ]; then
-	start
-	exit
+  if [ "$2" == "-h" ]; then
+    start_hub
+    exit
+  fi
+  if [ "$2" == "-e" ]; then
+    start_ep
+    exit
+  fi
+  echo "Select hub or endpoint option"
+  exit
+fi
+if [ "$1" == "generate" ]; then
+  if [ "$2" == "-h" ]; then
+    generate_hub $3
+    exit
+  fi
+  if [ "$2" == "-e" ]; then
+    generate_ep $3
+    exit
+  fi
+  echo "Select hub or endpoint option"
+  exit
 fi
 if [ "$1" == "clean" ]; then
-	clean
-	exit
+  if [ "$2" == "-h" ]; then
+    clean_hub
+    exit
+  fi
+  if [ "$2" == "-e" ]; then
+    clean_ep
+    exit
+  fi
+  echo "Select hub or endpoint option"
+  exit
 fi
 if [ "$1" == "populate" ]; then
-	populate
-	exit
+  populate $2
+  exit
 fi
