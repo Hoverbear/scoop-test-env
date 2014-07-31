@@ -48,6 +48,7 @@ function run_container () {
   echo "Finished with status: $?"
   echo
 }
+
 # Builds the necessary images.
 function build () {
   if [ HAS_HUB == true ]; then
@@ -80,8 +81,6 @@ function start_ep () {
     echo "No endpoints exists, make endpoints."
   fi
 }
-
-
 
 # Generates the hub.
 function generate_hub () {
@@ -130,8 +129,6 @@ function generate_ep () {
   echo "Run populate next!"
 }
 
-
-
 # Removes the hub container.
 function clean_hub () {
   if [ HUB_EXISTS == true ]; then
@@ -149,9 +146,6 @@ function clean_ep () {
     echo "No hub to remove."
   fi
 }
-
-
-
 
 function populate () {
   echo "Populating hub database with a default user."
@@ -176,28 +170,30 @@ function populate () {
   done
 }
 
+function help () {
+  echo "Help! Availible Args"
+  echo "build - checks if a hub/ep image exist and if not builds them. Could take a while."
+  echo "start -hub|-ep - starts stopped containers, only mostly works."
+  echo "generate -hub|-ep [num_of_eps| default=1] - creates containers, if making endpoints can specify # to make."
+  echo "populate [num_of_eps| default=1] - Creates default admin user (admin - hunter22) and exchanges keys between hub and endpoints. Links endpoint-1 to endpoint-[num_of_endpoints]"
+  echo "clean -hub|-ep - Removes containers, not working yet, just use docker."
+
+}
+
 
 #########
 # Logic #
 #########
 if [ "$1" == "build" ]; then
-  if [ "$2" == "-h" ]; then
-    build_hub
-    exit
-  fi
-  if [ "$2" == "-e" ]; then
-    build_ep
-    exit
-  fi
-  echo "Select hub or endpoint option"
+  build
   exit
 fi
 if [ "$1" == "start" ]; then
-  if [ "$2" == "-h" ]; then
+  if [ "$2" == "-hub" ]; then
     start_hub
     exit
   fi
-  if [ "$2" == "-e" ]; then
+  if [ "$2" == "-ep" ]; then
     start_ep
     exit
   fi
@@ -205,11 +201,11 @@ if [ "$1" == "start" ]; then
   exit
 fi
 if [ "$1" == "generate" ]; then
-  if [ "$2" == "-h" ]; then
+  if [ "$2" == "-hub" ]; then
     generate_hub $3
     exit
   fi
-  if [ "$2" == "-e" ]; then
+  if [ "$2" == "-ep" ]; then
     generate_ep $3
     exit
   fi
@@ -217,11 +213,11 @@ if [ "$1" == "generate" ]; then
   exit
 fi
 if [ "$1" == "clean" ]; then
-  if [ "$2" == "-h" ]; then
+  if [ "$2" == "-hub" ]; then
     clean_hub
     exit
   fi
-  if [ "$2" == "-e" ]; then
+  if [ "$2" == "-ep" ]; then
     clean_ep
     exit
   fi
@@ -230,5 +226,13 @@ if [ "$1" == "clean" ]; then
 fi
 if [ "$1" == "populate" ]; then
   populate $2
+  exit
+fi
+if [ "$1" == "-h" ]; then
+  help
+  exit
+fi
+if [ "$1" == "-help" ]; then
+  help
   exit
 fi
