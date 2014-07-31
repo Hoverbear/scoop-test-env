@@ -171,7 +171,7 @@ function populate () {
 }
 
 function help () {
-  echo "Help! Availible Args"
+  echo "Help! Available Args"
   echo "build - checks if a hub/ep image exist and if not builds them. Could take a while."
   echo "start -hub|-ep - starts stopped containers, only mostly works."
   echo "generate -hub|-ep [num_of_eps| default=1] - creates containers, if making endpoints can specify # to make."
