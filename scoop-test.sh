@@ -197,7 +197,7 @@ if [ "$1" == "start" ]; then
     start_ep
     exit
   fi
-  echo "Select hub or endpoint option"
+  echo "Select hub or endpoint option with -hub or -ep"
   exit
 fi
 if [ "$1" == "generate" ]; then
@@ -209,7 +209,7 @@ if [ "$1" == "generate" ]; then
     generate_ep $3
     exit
   fi
-  echo "Select hub or endpoint option"
+  echo "Select hub or endpoint option with -hub or -ep"
   exit
 fi
 if [ "$1" == "clean" ]; then
@@ -221,7 +221,7 @@ if [ "$1" == "clean" ]; then
     clean_ep
     exit
   fi
-  echo "Select hub or endpoint option"
+  echo "Select hub or endpoint option with -hub or -ep"
   exit
 fi
 if [ "$1" == "populate" ]; then
