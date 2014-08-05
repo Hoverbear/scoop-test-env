@@ -118,7 +118,7 @@ function generate_ep () {
     echo "Making $NUMBER_OF_ENDPOINTS endpoints."
     for ENDPOINT_NUMBER in `seq 1 $NUMBER_OF_ENDPOINTS`; do
       echo "Building endpoint #$ENDPOINT_NUMBER"
-      run_container endpoint-$ENDPOINT_NUMBER scoop/test-endpoint -d -p 3001 -p 27017 --link hub:hub
+      run_container endpoint-$ENDPOINT_NUMBER scoop/test-endpoint -d -p 3001:3001 -p 27017 --link hub:hub
     done
   else
     # TODO: Make more professional.
