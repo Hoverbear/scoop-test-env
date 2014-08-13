@@ -133,20 +133,22 @@ function generate_ep () {
 
 # Removes the hub container.
 function clean_hub () {
-  if [ HUB_EXISTS == true ]; then
-    docker rm -f $(docker ps -a | grep hub | awk '{print $1}')
-  else
-    echo "No endpoints to remove."
+  docker rm -f $(docker ps -a | awk '{print $1,$2}' | grep -P 'scoop/test-hub' | awk '{print $1}')
+  if [ "$?" != "0" ]; then
+    echo "Failed to remove hub."
+    exit
   fi
+  echo "Removed hub."
 }
 
 # Removes endpoint containers.
 function clean_ep () {
-  if [ ENDPOINT_EXISTS == true ]; then
-    docker rm -f $(docker ps -a | grep endpoint | awk '{print $1}')
-  else
-    echo "No hub to remove."
+  docker rm -f $(docker ps -a | awk '{print $1,$2}' | grep -P 'scoop/test-endpoint' | awk '{print $1}')
+  if [ "$?" != "0" ]; then
+    echo "Failed to remove endpoint."
+    exit
   fi
+  echo "Removed endpoint."
 }
 
 function populate () {
