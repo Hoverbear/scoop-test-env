@@ -28,7 +28,7 @@ if [ $? == 0 ]; then ENDPOINT_RUNNING=true; else ENDPOINT_RUNNING=false; fi
 function build_image () {
   echo
   echo "Building $1"
-  docker build -t $1 $2 > /dev/null
+  docker build -t $1 $2 
   echo "Finished with status: $?"
   echo
 }
@@ -50,12 +50,14 @@ function run_container () {
 }
 
 # Builds the necessary images.
-function build () {
+function build_hub () {
   if [ HAS_HUB == true ]; then
     docker rmi scoop/test-hub
   fi
   build_image scoop/test-hub scoop-hub/
-  if [ HAS_ENDPOINT == false ]; then
+}
+function build_ep () {
+  if [ HAS_ENDPOINT == true ]; then
     docker rmi scoop/test-endpoint
   fi
   build_image scoop/test-endpoint scoop-endpoint/
@@ -170,14 +172,20 @@ function populate () {
   done
 }
 
-function help () {
-  echo "Help! Available Args"
-  echo "build - checks if a hub/ep image exist and if not builds them. Could take a while."
-  echo "start -hub|-ep - starts stopped containers, only mostly works."
-  echo "generate -hub|-ep [num_of_eps| default=1] - creates containers, if making endpoints can specify # to make."
-  echo "populate [num_of_eps| default=1] - Creates default admin user (admin - hunter22) and exchanges keys between hub and endpoints. Links endpoint-1 to endpoint-[num_of_endpoints]"
-  echo "clean -hub|-ep - Removes containers, not working yet, just use docker."
+function se-config () {
+  sudo chcon -Rt svirt_sandbox_file_t scoop_hub/db
+  sudo chcon -Rt svirt_sandbox_file_t scoop_endpoint/db
+}
 
+function help () {
+  echo "SCOOP Test Env help:"
+  echo -e "build\t\t{-hub|-ep}\tCheck if a hub/ep image exist and if not builds them. Could take a while."
+  echo -e "start\t\t{-hub|-ep}\tStarts stopped containers, only mostly works."
+  echo -e "generate\t{-hub|-ep}\tCreates containers"
+  # TODO: se-config help
+  # TODO: docker start help
+  echo -e "populate\t\t\tCreates default admin user (admin - hunter22) and exchanges keys between hub and endpoints."
+  echo -e "clean\t\t{-hub|-ep}\tRemoves containers, not working yet, just use docker."
 }
 
 
@@ -185,7 +193,15 @@ function help () {
 # Logic #
 #########
 if [ "$1" == "build" ]; then
-  build
+  if [ "$2" == "-hub" ]; then
+    build_hub
+    exit
+  fi
+  if [ "$2" == "-ep" ]; then
+    build_ep
+    exit
+  fi
+  echo "Select hub or endpoint option with -hub or -ep"
   exit
 fi
 if [ "$1" == "start" ]; then
@@ -234,5 +250,9 @@ if [ "$1" == "-h" ]; then
 fi
 if [ "$1" == "-help" ]; then
   help
+  exit
+fi
+if [ "$1" == "se-config" ]; then
+  se-config
   exit
 fi
