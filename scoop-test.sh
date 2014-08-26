@@ -175,8 +175,8 @@ function populate () {
 }
 
 function se-config () {
-  sudo chcon -Rt svirt_sandbox_file_t scoop_hub/db
-  sudo chcon -Rt svirt_sandbox_file_t scoop_endpoint/db
+  sudo chcon -Rt svirt_sandbox_file_t scoop-hub/db
+  sudo chcon -Rt svirt_sandbox_file_t scoop-endpoint/db
 }
 
 function help () {
